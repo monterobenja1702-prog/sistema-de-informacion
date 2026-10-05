@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Formulario SQLite</title>
+  <!-- Cargamos la librería para usar SQLite -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+</head>
+<body>
+
+  <h2>Registrar Datos</h2>
+
+  <!-- Formulario -->
+  <form id="miFormulario">
+    <label>Nombre:</label><br>
+    <input type="text" id="nombre" required><br><br>
+
+    <label>Valor:</label><br>
+    <input type="number" step="0.01" id="valor" required><br><br>
+
+    <label>Fecha:</label><br>
+    <input type="date" id="fecha" required><br><br>
+
+    <button type="submit">Guardar en SQL</button>
+  </form>
+
+  <h3>Datos guardados en la BD</h3>
+  <ul id="listaRegistros"></ul>
+
+  <!-- Código JavaScript -->
+  <script>
+    let db;
+
+    // 1. Inicializamos la base de datos SQLite
+    initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}` }).then(SQL => {
+      db = new SQL.Database();
+      // Creamos la tabla si no existe
+      db.run("CREATE TABLE IF NOT EXISTS datos (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, valor REAL, fecha TEXT);");
+    });
+
+    // 2. Evento al enviar el formulario
+    document.getElementById('miFormulario').addEventListener('submit', function(e) {
+      e.preventDefault(); // Evita recargar la página
+
+      // Tomamos los valores
+      const nombre = document.getElementById('nombre').value;
+      const valor = parseFloat(document.getElementById('valor').value);
+      const fecha = document.getElementById('fecha').value;
+
+      // 3. Consulta SQL para guardar
+      const stmt = db.prepare("INSERT INTO datos (nombre, valor, fecha) VALUES (?, ?, ?)");
+      stmt.run([nombre, valor, fecha]);
+      stmt.free();
+
+      // Limpiamos los inputs y mostramos los registros actualizados
+      this.reset();
+      mostrarRegistros();
+    });
+
+    // 4. Función para leer y mostrar los datos en pantalla
+    function mostrarRegistros() {
+      const lista = document.getElementById('listaRegistros');
+      lista.innerHTML = "";
+
+      const res = db.exec("SELECT nombre, valor, fecha FROM datos");
+      if (res.length > 0) {
+        const filas = res[0].values;
+        filas.forEach(row => {
+          const li = document.createElement('li');
+          li.textContent = `Nombre: ${row[0]} | Valor: ${row[1]} | Fecha: ${row[2]}`;
+          lista.appendChild(li);
+        });
+      }
+    }
+  </script>
+
+</body>
+</html>
